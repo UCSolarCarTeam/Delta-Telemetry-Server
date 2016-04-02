@@ -58,7 +58,7 @@ func ReceiveAndPrintUDP(ServerConn *net.UDPConn, buf []byte) error {
 
 func main() {
 	KeepAliveMap = make(map[string]KeepAlive)
-	ServerAddr, err := net.ResolveUDPAddr("udp", ":10001")
+	ServerAddr, err := net.ResolveUDPAddr("udp", "192.168.1.110:10001")
 	CheckError(err)
 	ServerConn, err := net.ListenUDP("udp", ServerAddr)
 	CheckError(err)
