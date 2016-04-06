@@ -15,7 +15,7 @@ import (
 
 var KeepAliveMap map[string]KeepAlive
 
-const TimeOut = 5
+const TimeOut = 105
 const HeartBeatPacket = "KeepMeAlive!"
 
 type KeepAlive struct {
@@ -45,20 +45,31 @@ func UpdateMap(addr *net.UDPAddr) {
 	time_receieved := time.Now()
 	temp := KeepAlive{addr, time_receieved}
 	KeepAliveMap[addr.String()] = temp
-	fmt.Println(KeepAliveMap)
+	//fmt.Println(KeepAliveMap)
 	CleanMap()
 }
+func forwardMessagesUDP(ServerAddr *net.UDPAddr, message []byte, length int) {
+	for _, clients := range KeepAliveMap {
+		ServerAddrr, err := net.ResolveUDPAddr("udp", ":10002")
+		Conn, err := net.DialUDP("udp", ServerAddrr, clients.address)
+		CheckError(err)
+		defer Conn.Close()
+		fmt.Println("Sending message to", clients.address.String())
+		Conn.Write(message)
+		CheckError(err)
+	}
+}
 
-func ReceiveAndPrintUDP(ServerConn *net.UDPConn, buf []byte) error {
+func ReceiveAndPrintUDP(ServerConn *net.UDPConn, buf []byte) (int, error) {
 	n, addr, err := ServerConn.ReadFromUDP(buf)
-	fmt.Println("Received ", string(buf[0:n]), " from ", addr)
+	//fmt.Println("Received ", string(buf[0:n]), " from ", addr)
 	UpdateMap(addr)
-	return err
+	return n, err
 }
 
 func main() {
 	KeepAliveMap = make(map[string]KeepAlive)
-	ServerAddr, err := net.ResolveUDPAddr("udp", "192.168.1.110:10001")
+	ServerAddr, err := net.ResolveUDPAddr("udp", ":"+os.Args[1])
 	CheckError(err)
 	ServerConn, err := net.ListenUDP("udp", ServerAddr)
 	CheckError(err)
@@ -67,7 +78,9 @@ func main() {
 	buf := make([]byte, 2048)
 
 	for {
-		err := ReceiveAndPrintUDP(ServerConn, buf)
+		n, err := ReceiveAndPrintUDP(ServerConn, buf)
+		fmt.Println("Received ", string(buf[0:n]))
+		forwardMessagesUDP(ServerAddr, buf, n)
 		CheckError(err)
 	}
 }
