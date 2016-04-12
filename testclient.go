@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"bufio"
 )
 
 func CheckError(err error) {
@@ -14,23 +15,12 @@ func CheckError(err error) {
 	}
 }
 
-func listener(Conn *net.UDPConn) {
-	buf := make([]byte, 2048)
-	for {
-		fmt.Println("Looking for UDP")
-		n, addr, err := Conn.ReadFromUDP(buf)
-		fmt.Println("Received something?")
-		CheckError(err)
-		fmt.Println("Received", string(buf[0:n]), "from", addr.String())
-	}
-}
-
 func main() {
-	fmt.Println("args: <localIP> <ServerIP> <ServerPort>")
-	ServerAddr, err := net.ResolveUDPAddr("udp", os.Args[3]+":"+os.Args[4])
+	fmt.Println("args: <ServerIP> <ServerPort>")
+	ServerAddr, err := net.ResolveUDPAddr("udp", os.Args[1]+":"+os.Args[2])
 	CheckError(err)
 
-	LocalAddr, err := net.ResolveUDPAddr("udp", os.Args[1]+":"+os.Args[2])
+	LocalAddr, err := net.ResolveUDPAddr("udp", "localhost:0")
 	CheckError(err)
 
 	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
@@ -39,16 +29,23 @@ func main() {
 	defer Conn.Close()
 	i := 0
 
-	go listener(Conn)
-	for {
-		fmt.Println("Writing Message")
+	for {		
+		/* Write to server */
 		msg := strconv.Itoa(i)
 		i++
-		buf := []byte(msg + "\n")
+		buf := []byte(msg)
 		_, err := Conn.Write(buf)
-		if err != nil {
-			fmt.Println(msg, err)
-		}
+		CheckError(err)
+
+		/* Read from server */
+	    buf =  make([]byte, 2048)
+        _, err = bufio.NewReader(Conn).Read(buf)
+        if err == nil {
+            fmt.Printf("%s\n", buf)
+        } else {
+            fmt.Printf("Some error %v\n", err)
+        }
+
 		time.Sleep(time.Second * 1)
 	}
 }
