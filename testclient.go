@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"time"
 )
@@ -13,11 +14,23 @@ func CheckError(err error) {
 	}
 }
 
+func listener(Conn *net.UDPConn) {
+	buf := make([]byte, 2048)
+	for {
+		fmt.Println("Looking for UDP")
+		n, addr, err := Conn.ReadFromUDP(buf)
+		fmt.Println("Received something?")
+		CheckError(err)
+		fmt.Println("Received", string(buf[0:n]), "from", addr.String())
+	}
+}
+
 func main() {
-	ServerAddr, err := net.ResolveUDPAddr("udp", "192.168.1.110:10001")
+	fmt.Println("args: <localIP> <ServerIP> <ServerPort>")
+	ServerAddr, err := net.ResolveUDPAddr("udp", os.Args[3]+":"+os.Args[4])
 	CheckError(err)
 
-	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	LocalAddr, err := net.ResolveUDPAddr("udp", os.Args[1]+":"+os.Args[2])
 	CheckError(err)
 
 	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
@@ -25,10 +38,13 @@ func main() {
 
 	defer Conn.Close()
 	i := 0
+
+	go listener(Conn)
 	for {
+		fmt.Println("Writing Message")
 		msg := strconv.Itoa(i)
 		i++
-		buf := []byte(msg)
+		buf := []byte(msg + "\n")
 		_, err := Conn.Write(buf)
 		if err != nil {
 			fmt.Println(msg, err)

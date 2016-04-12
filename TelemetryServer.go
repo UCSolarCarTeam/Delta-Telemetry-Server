@@ -8,7 +8,7 @@ import (
 	"os"
 	//"os/exec"
 	//"path/filepath"
-	//"strconv"
+	"strconv"
 	//"strings"
 	"time"
 )
@@ -50,11 +50,15 @@ func UpdateMap(addr *net.UDPAddr) {
 }
 func forwardMessagesUDP(ServerAddr *net.UDPAddr, message []byte, length int) {
 	for _, clients := range KeepAliveMap {
-		ServerAddrr, err := net.ResolveUDPAddr("udp", ":10002")
+		port, err := strconv.Atoi(os.Args[1])
+		port += port + 0
+		CheckError(err)
+		ServerAddrr, err := net.ResolveUDPAddr("udp", ":"+string(port))
 		Conn, err := net.DialUDP("udp", ServerAddrr, clients.address)
 		CheckError(err)
 		defer Conn.Close()
 		fmt.Println("Sending message to", clients.address.String())
+		message = []byte("hi\n")
 		Conn.Write(message)
 		CheckError(err)
 	}
