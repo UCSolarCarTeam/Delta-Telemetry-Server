@@ -8,7 +8,7 @@ import (
 	"os"
 	//"os/exec"
 	//"path/filepath"
-	"strconv"
+	// "strconv"
 	//"strings"
 	"time"
 )
@@ -48,18 +48,25 @@ func UpdateMap(addr *net.UDPAddr) {
 	//fmt.Println(KeepAliveMap)
 	CleanMap()
 }
-func forwardMessagesUDP(ServerAddr *net.UDPAddr, message []byte, length int) {
+func forwardMessagesUDP(ServerConn *net.UDPConn, message []byte, length int) {
 	for _, clients := range KeepAliveMap {
-		port, err := strconv.Atoi(os.Args[1])
-		port += port + 0
-		CheckError(err)
-		ServerAddrr, err := net.ResolveUDPAddr("udp", ":"+string(port))
-		Conn, err := net.DialUDP("udp", ServerAddrr, clients.address)
-		CheckError(err)
-		defer Conn.Close()
-		fmt.Println("Sending message to", clients.address.String())
-		message = []byte("hi\n")
-		Conn.Write(message)
+		fmt.Println("Sending to client ", clients.address.String())
+
+		_, err := ServerConn.WriteToUDP([]byte("This is from the server"), clients.address)		
+		if err != nil {
+    	    fmt.Printf("Couldn't send response %v", err)
+	    }
+
+		// port, err := strconv.Atoi(os.Args[1])
+		// port += port + 0
+		// CheckError(err)
+		// ServerAddrr, err := net.ResolveUDPAddr("udp", ":"+string(port))
+		// Conn, err := net.DialUDP("udp", ServerAddrr, clients.address)
+		// CheckError(err)
+		// defer Conn.Close()
+		// fmt.Println("Sending message to", clients.address.String())
+		// message = []byte("hi\n")
+		// Conn.Write(message)
 		CheckError(err)
 	}
 }
@@ -84,7 +91,7 @@ func main() {
 	for {
 		n, err := ReceiveAndPrintUDP(ServerConn, buf)
 		fmt.Println("Received ", string(buf[0:n]))
-		forwardMessagesUDP(ServerAddr, buf, n)
+		go forwardMessagesUDP(ServerConn, buf, n)
 		CheckError(err)
 	}
 }
