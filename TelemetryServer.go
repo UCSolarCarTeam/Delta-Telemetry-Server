@@ -9,7 +9,7 @@ import (
 
 var KeepAliveMap map[string]KeepAlive
 
-const TimeOut = 105
+const TimeOut = 20
 
 type KeepAlive struct {
     address   *net.UDPAddr
@@ -55,7 +55,7 @@ func forwardMessagesUdp(ServerConn *net.UDPConn, message []byte, length int) {
 func receiveAndPrintUdp(ServerConn *net.UDPConn, buf []byte) (int, error) {
     n, addr, err := ServerConn.ReadFromUDP(buf)
     response := string(buf[0:n])
-    fmt.Println("RECEIVED: ", response, "\nFROM: ", addr)
+    fmt.Println("\nRECEIVED: ", response, "\nFROM: ", addr)
     updateMap(addr)
     return n, err
 }
