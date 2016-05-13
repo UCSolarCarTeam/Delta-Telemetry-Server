@@ -20,7 +20,7 @@ func main() {
     ServerAddr, err := net.ResolveUDPAddr("udp", os.Args[1]+":"+os.Args[2])
     CheckError(err)
 
-    LocalAddr, err := net.ResolveUDPAddr("udp", "localhost:0")
+    LocalAddr, err := net.ResolveUDPAddr("udp", "10.12.101.133:0")
     CheckError(err)
 
     Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)

@@ -16,58 +16,63 @@ type KeepAlive struct {
     timestamp time.Time
 }
 
-func CheckError(err error) {
+func checkError(err error) {
     if err != nil {
         fmt.Println("Error: ", err)
         os.Exit(0)
     }
 }
 
-/* cleans out any entries that have been in the Map for longer than the timeout */
-func CleanMap() {
+func cleanMap() {
     for _, contents := range KeepAliveMap {
         fmt.Println(contents.timestamp)
         if time.Since(contents.timestamp).Seconds() > TimeOut {
-            fmt.Println(contents.address, "timed out")
+            fmt.Println(contents.address, " : TIMED OUT")
             delete(KeepAliveMap, contents.address.String())
         }
     }
 }
 
-func UpdateMap(addr *net.UDPAddr) {
+func updateMap(addr *net.UDPAddr) {
     time_receieved := time.Now()
     temp := KeepAlive{addr, time_receieved}
     KeepAliveMap[addr.String()] = temp
-    CleanMap()
+    cleanMap()
 }
-func forwardMessagesUDP(ServerConn *net.UDPConn, message []byte, length int) {
+
+func forwardMessagesUdp(ServerConn *net.UDPConn, message []byte, length int) {
+    if(string(message) == "Heartbeat"){
+        fmt.Println("NOT SENDING A HEARTBEAT...")
+        return
+    }
     for _, clients := range KeepAliveMap {
-        fmt.Println("Sending to client ", clients.address.String())
-        _, err := ServerConn.WriteToUDP([]byte("This is from the server"), clients.address)
-        CheckError(err)
+        fmt.Println("SENDING TO CLIENT: ", clients.address.String())
+        _, err := ServerConn.WriteToUDP(message, clients.address)
+        checkError(err)
     }
 }
 
-func ReceiveAndPrintUDP(ServerConn *net.UDPConn, buf []byte) (int, error) {
+func receiveAndPrintUdp(ServerConn *net.UDPConn, buf []byte) (int, error) {
     n, addr, err := ServerConn.ReadFromUDP(buf)
-    fmt.Println("Received ", string(buf[0:n]), " from ", addr)
-    UpdateMap(addr)
+    response := string(buf[0:n])
+    fmt.Println("RECEIVED: ", response, "\nFROM: ", addr)
+    updateMap(addr)
     return n, err
 }
 
 func main() {
     KeepAliveMap = make(map[string]KeepAlive)
-    ServerAddr, err := net.ResolveUDPAddr("udp", ":"+os.Args[1])
-    CheckError(err)
+    ServerAddr, err := net.ResolveUDPAddr("udp", ":" + os.Args[1])
+    checkError(err)
     ServerConn, err := net.ListenUDP("udp", ServerAddr)
-    CheckError(err)
+    checkError(err)
     defer ServerConn.Close()
 
     buf := make([]byte, 2048)
 
     for {
-        n, err := ReceiveAndPrintUDP(ServerConn, buf)
-        go forwardMessagesUDP(ServerConn, buf, n)
-        CheckError(err)
+        n, err := receiveAndPrintUdp(ServerConn, buf)
+        go forwardMessagesUdp(ServerConn, buf, n)
+        checkError(err)
     }
 }
